@@ -47,7 +47,7 @@ Generates a comprehensive date dimension table with various date attributes.
         {{ dbt_date.iso_week_end("d.prior_year_over_year_date_day") }}
         as prior_year_iso_week_end_date,
         {{ dbt_date.iso_week_of_year("d.date_day") }} as iso_week_of_year,
-        {{ dbt_date.iso_year_week("d.date_day") }} as iso_year_week,
+        (to_char(d.date_day, 'IYYY') || '-W' || to_char(d.date_day, 'IW')) as iso_year_week,
 
         {{ dbt_date.week_of_year("d.prior_year_over_year_date_day") }}
         as prior_year_week_of_year,

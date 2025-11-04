@@ -55,10 +55,11 @@ echo ""
 
 case "${1:-}" in
   date)
-    echo -e "${BLUE}Running dbt_date tests only...${NC}"
-    dbt seed --select dbt_date --full-refresh || true
-    dbt run  --select dbt_date --full-refresh
-    dbt test --select dbt_date
+    echo -e "${BLUE}Running local dbt_date models...${NC}"
+    # Run only local dbt_date models under integration_tests/models/dbt_date
+    dbt run  --select "path:models/dbt_date" --full-refresh
+    # If tests exist under models/dbt_date or tests/, run them as well
+    dbt test --select "path:models/dbt_date" "path:tests"
     ;;
   utils)
     echo -e "${BLUE}Running dbt_utils tests (datetime + overrides)...${NC}"

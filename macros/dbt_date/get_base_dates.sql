@@ -6,12 +6,12 @@ For Exasol, we need to cast date strings to DATE first, then to TIMESTAMP.
 {% macro exasol__get_base_dates(start_date, end_date, n_dateparts, datepart) %}
 
     {%- if start_date and end_date -%}
-        {# Use ANSI DATE literal to avoid NLS-dependent parsing #}
+        {# Use explicit format models to avoid NLS-dependent parsing #}
         {%- set start_date = (
-            "cast(DATE '" ~ start_date ~ "' as " ~ dbt.type_timestamp() ~ ")"
+            "cast(TO_DATE('" ~ start_date ~ "','YYYY-MM-DD') as " ~ dbt.type_timestamp() ~ ")"
         ) -%}
         {%- set end_date = (
-            "cast(DATE '" ~ end_date ~ "' as " ~ dbt.type_timestamp() ~ ")"
+            "cast(TO_DATE('" ~ end_date ~ "','YYYY-MM-DD') as " ~ dbt.type_timestamp() ~ ")"
         ) -%}
 
     {%- elif n_dateparts and datepart -%}

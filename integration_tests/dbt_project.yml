@@ -39,6 +39,12 @@ dispatch:
 vars:
   dbt_date:time_zone: 'UTC'
 
+on-run-start:
+  - "alter session set NLS_DATE_FORMAT = 'YYYY-MM-DD'"
+  - "alter session set NLS_TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF6'"
+  - "alter session set NLS_DATE_LANGUAGE = 'ENG'"
+  - "alter session set NLS_FIRST_DAY_OF_WEEK = 'MONDAY'"
+
 models:
   dbt_exasol_utils_integration_tests:
     +materialized: table
