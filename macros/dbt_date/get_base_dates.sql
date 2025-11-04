@@ -6,13 +6,36 @@ For Exasol, we need to cast date strings to DATE first, then to TIMESTAMP.
 {% macro exasol__get_base_dates(start_date, end_date, n_dateparts, datepart) %}
 
     {%- if start_date and end_date -%}
-        {# Use explicit format models to avoid NLS-dependent parsing #}
-        {%- set start_date = (
-            "cast(TO_DATE('" ~ start_date ~ "','YYYY-MM-DD') as " ~ dbt.type_timestamp() ~ ")"
-        ) -%}
-        {%- set end_date = (
-            "cast(TO_DATE('" ~ end_date ~ "','YYYY-MM-DD') as " ~ dbt.type_timestamp() ~ ")"
-        ) -%}
+        {#
+         Decide if inputs are literal YYYY-MM-DD or SQL expressions.
+         If literal, wrap with TO_DATE(...,'YYYY-MM-DD'); otherwise, cast the expression.
+        #}
+        {%- set sd = start_date | trim -%}
+        {%- set ed = end_date   | trim -%}
+        {%- set sd_lower = sd | lower -%}
+        {%- set ed_lower = ed | lower -%}
+        {%- set sd_is_expr = '(' in sd or ' ' in sd or sd_lower[:5] == 'date ' or 'now' in sd_lower or 'add_' in sd_lower or 'current' in sd_lower -%}
+        {%- set ed_is_expr = '(' in ed or ' ' in ed or ed_lower[:5] == 'date ' or 'now' in ed_lower or 'add_' in ed_lower or 'current' in ed_lower -%}
+
+        {%- if not sd_is_expr -%}
+            {%- set start_date = (
+                "cast(TO_DATE('" ~ sd ~ "','YYYY-MM-DD') as " ~ dbt.type_timestamp() ~ ")"
+            ) -%}
+        {%- else -%}
+            {%- set start_date = (
+                "cast((" ~ sd ~ ") as " ~ dbt.type_timestamp() ~ ")"
+            ) -%}
+        {%- endif -%}
+
+        {%- if not ed_is_expr -%}
+            {%- set end_date = (
+                "cast(TO_DATE('" ~ ed ~ "','YYYY-MM-DD') as " ~ dbt.type_timestamp() ~ ")"
+            ) -%}
+        {%- else -%}
+            {%- set end_date = (
+                "cast((" ~ ed ~ ") as " ~ dbt.type_timestamp() ~ ")"
+            ) -%}
+        {%- endif -%}
 
     {%- elif n_dateparts and datepart -%}
 
