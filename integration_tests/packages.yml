@@ -1,0 +1,13 @@
+packages:
+  # Install dbt_utils from hub
+  - package: dbt-labs/dbt_utils
+    version: [">=1.3.0", "<2.0.0"]
+
+  # Install dbt_date from hub (needed for dbt_date macros)
+  - package: godatadriven/dbt_date
+    version: [">=0.16.0", "<1.0.0"]
+
+  # Install local package (one directory above)
+  - local: ../
+  # Install dbt_date upstream integration project for helper macros
+  - local: dbt_packages/dbt_date/integration_tests

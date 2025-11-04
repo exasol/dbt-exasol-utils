@@ -1,0 +1,11 @@
+name: 'dbt_exasol_utils'  # Package name uses underscores per dbt convention
+version: '0.1.0'
+config-version: 2
+
+require-dbt-version: [">=1.0.0", "<2.0.0"]
+
+macro-paths: ["macros"]
+
+# This package provides Exasol-specific implementations for:
+# - dbt_utils macros
+# - dbt_date macros

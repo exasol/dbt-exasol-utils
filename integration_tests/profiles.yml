@@ -1,0 +1,12 @@
+exasol:
+  target: prod
+  outputs:
+    prod:
+      type: exasol
+      dsn: localhost/nocertcheck:8563
+      user: sys
+      password: exasol
+      dbname: ''
+      schema: dbt_test
+      timestamp_format: "YYYY-MM-DD HH:MI:SS.FF6"
+      threads: 4

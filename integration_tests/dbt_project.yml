@@ -1,0 +1,53 @@
+name: 'dbt_exasol_utils_integration_tests'
+version: '1.0.0'
+config-version: 2
+
+profile: 'exasol'
+
+model-paths:
+  - "models"  # Contains local overrides in models/dbt_utils_overrides/
+  # Only include datetime from dbt_utils (other subdirs have local overrides)
+  - "dbt_packages/dbt_utils/integration_tests/models/datetime"
+  # NOTE: generic_tests/, geo/, sql/, and web/ excluded from upstream
+  #   - generic_tests/, geo/, sql/ have overrides in models/dbt_utils_overrides/ (data keyword fix)
+  #   - web/ excluded - requires split_part() which Exasol doesn't support
+
+# Note: Maximum upstream test usage with minimal overrides
+# - dbt_date: Full upstream tests (exasol__datetime handles timezone stripping)
+# - dbt_utils: 16/52 tests have local overrides to fix 'data' reserved keyword
+#   - Upstream uses 'with data as' which conflicts with Exasol's DATA keyword
+#   - Local overrides in dbt_utils_overrides/ rename 'data' -> 'test_data'
+#   - datetime/ uses 100% upstream (no 'data' keyword conflicts)
+#   - web/ excluded (requires split_part which Exasol doesn't support)
+
+test-paths: ["tests"]
+seed-paths:
+  - "dbt_packages/dbt_utils/integration_tests/data"
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+dispatch:
+  - macro_namespace: dbt_utils
+    search_order: ['dbt_exasol_utils_integration_tests', 'dbt_exasol_utils', 'dbt_utils']
+  - macro_namespace: dbt_date
+    search_order: ['dbt_exasol_utils_integration_tests', 'dbt_exasol_utils', 'dbt_date']
+
+vars:
+  dbt_date:time_zone: 'UTC'
+
+models:
+  dbt_exasol_utils_integration_tests:
+    +materialized: table
+  # Disable upstream dbt_date integration models; replaced with local exasol-friendly tests
+  dbt_date_integration_tests:
+    +enabled: false
+
+seeds:
+  # Quote all seed columns to handle Exasol reserved keywords
+  # (OUTPUT, CONDITION, VALUE, MONTH, SOURCE, etc.)
+  # Model overrides reference these quoted columns as needed
+  +quote_columns: true

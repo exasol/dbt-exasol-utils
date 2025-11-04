@@ -1,0 +1,22 @@
+target/
+dbt_packages/
+logs/
+.DS_Store
+*.pyc
+__pycache__/
+
+# IDE
+.idea/
+
+# Testing venv
+.venv/
+
+# Test artifacts
+*.log
+test_results*.log
+
+# User-specific files
+.user.yml
+
+# Generated files
+package-lock.yml
