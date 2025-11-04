@@ -4,6 +4,28 @@
 
 This package provides Exasol-specific implementations for popular dbt utility packages, ensuring they work seamlessly with Exasol's SQL dialect and native functions. All macros behave identically to their upstream counterparts—refer to the original package documentation for usage details.
 
+## Quick Install
+
+```bash
+# Create and activate an isolated environment (recommended)
+uv venv .venv && source .venv/bin/activate
+uv pip install dbt-core dbt-exasol
+
+# Add to packages.yml (pin to a released tag)
+cat >> packages.yml <<'YAML'
+packages:
+  - package: dbt-labs/dbt_utils
+    version: ">=1.3.0,<2.0.0"
+  - package: godatadriven/dbt_date
+    version: ">=0.16.0,<1.0.0"
+  - git: https://github.com/exasol/dbt-exasol-utils.git
+    revision: v0.1.0
+YAML
+
+# Install packages
+dbt deps
+```
+
 ## ⚠️ Important Notice
 
 **This is an open-source community project and is NOT officially supported by Exasol.** While we strive to help, we cannot guarantee support as this is not an official Exasol product.
@@ -33,11 +55,11 @@ packages:
   - package: godatadriven/dbt_date
     version: [">=0.16.0", "<1.0.0"]
 
-  # Exasol support
-  - package: tglunde/dbt_exasol_utils
-    version: [">=0.1.0", "<1.0.0"]
-    # OR for local development:
-    # - local: /path/to/dbt-exasol-utils
+  # Exasol support (Git source; pin to a tag)
+  - git: https://github.com/exasol/dbt-exasol-utils.git
+    revision: v0.1.0
+  # OR for local development:
+  # - local: /path/to/dbt-exasol-utils
 ```
 
 ### 2. Configure dispatch in `dbt_project.yml`
@@ -205,11 +227,11 @@ FROM orders
 
 ```bash
 # Quick test (from project root)
-./run_tests.sh
+integration_tests/run_tests.sh
 
 # Or run specific tests
-./run_tests.sh date   # dbt_date tests only
-./run_tests.sh utils  # dbt_utils tests only
+integration_tests/run_tests.sh date   # dbt_date tests only
+integration_tests/run_tests.sh utils  # dbt_utils tests only
 ```
 
 See [integration_tests/README.md](integration_tests/README.md) for detailed testing instructions.
@@ -222,7 +244,7 @@ dbt-exasol-utils/
 │   ├── dbt_utils/          # 5 Exasol overrides
 │   └── dbt_date/           # 17 Exasol overrides
 ├── integration_tests/      # Test suite with README
-├── run_tests.sh            # Automated test runner
+│   └── run_tests.sh        # Automated test runner
 └── AGENTS.md               # Repository guidelines for contributors
 ```
 
@@ -277,3 +299,16 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [dbt-labs/dbt-utils](https://github.com/dbt-labs/dbt-utils) - Original dbt utility macros
 - [godatadriven/dbt-date](https://github.com/godatadriven/dbt-date) - Original date utility macros
 - [dbt-exasol](https://github.com/tglunde/dbt-exasol) - Exasol adapter for dbt
+### Session Formats (NLS)
+
+Exasol uses session defaults to parse/format dates and timestamps. To avoid implicit conversion errors, set these at the start of each run (dbt on-run-start is ideal):
+
+```yaml
+on-run-start:
+  - "alter session set NLS_DATE_FORMAT = 'YYYY-MM-DD'"
+  - "alter session set NLS_TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF6'"
+  - "alter session set NLS_DATE_LANGUAGE = 'ENG'"
+  - "alter session set NLS_FIRST_DAY_OF_WEEK = 'MONDAY'"
+```
+
+References: Exasol “Format Models” documentation explains supported format elements like `HH24`, `FF6`, `IYYY`, `IW`, `ID`.

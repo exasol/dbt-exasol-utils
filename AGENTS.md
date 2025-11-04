@@ -33,3 +33,11 @@
 ## Security & Configuration Tips
 - Always use the local profile: `integration_tests/profiles.yml` via `--profiles-dir integration_tests` (or `--profiles-dir .` inside that folder). Do not use `~/.dbt`.
 - Never commit credentials; sanitize logs before sharing.
+
+## Session Formats (Exasol)
+- Normalize NLS settings to avoid implicit parsing errors (see “Format Models” in Exasol docs):
+  - `alter session set NLS_DATE_FORMAT = 'YYYY-MM-DD';`
+  - `alter session set NLS_TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF6';`
+  - `alter session set NLS_DATE_LANGUAGE = 'ENG';`
+  - `alter session set NLS_FIRST_DAY_OF_WEEK = 'MONDAY';`
+- Add these under `on-run-start` in your consuming project’s `dbt_project.yml`.
