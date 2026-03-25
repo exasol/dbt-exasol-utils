@@ -7,5 +7,5 @@ Format: YYYY-Www (e.g., 2024-W01)
 #}
 
 {%- macro exasol__iso_year_week(date) -%}
-    to_char({{ date }}, 'IYYY"-W"IW')
+    to_char({{ date }}, 'IYYY') || '-W' || to_char({{ date }}, 'IW')
 {%- endmacro -%}

@@ -3,10 +3,11 @@ exasol:
   outputs:
     prod:
       type: exasol
-      dsn: localhost/nocertcheck:8563
+      dsn: localhost:8563
       user: sys
       password: exasol
       dbname: ''
       schema: dbt_test
       timestamp_format: "YYYY-MM-DD HH:MI:SS.FF6"
+      validate_server_certificate: false
       threads: 4
