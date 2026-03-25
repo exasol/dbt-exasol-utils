@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-03-25
+
+### Added
+
+- SQL expression support for `end_date` parameter in `get_base_dates` — enables dynamic end dates like `CURRENT_DATE` or `ADD_DAYS(CURRENT_DATE, 365)`
+- Comprehensive `exasol__date_part` mapping all datepart values (dayofweek, dayofyear, week, isoweek, quarter, epoch) to Exasol-native equivalents
+- Automated release workflow — bump version in `dbt_project.yml` and merge to create a GitHub release ([BI-130](https://exasol.atlassian.net/browse/BI-130))
+
+### Fixed
+
+- Use ANSI DATE literal in `get_base_dates` to avoid NLS date-format dependency
+- Use explicit `TO_DATE(string, 'YYYY-MM-DD')` parsing in date macros to prevent NLS edge cases
+- Fix `iso_year_week` to use concatenation (`IYYY || '-W' || IW`) — embedded literal format was unsupported on all Exasol versions
+- Fix German month abbreviation in test data (`'Dec'` → `'Dez'`)
+- Fix `validate_server_certificate` in profiles.yml for dbt-exasol 1.10+ SSL handling
+
+### Changed
+
+- **Reduce macro count from 22 to 12** by relying on upstream defaults and adapter capabilities:
+  - Remove `haversine_distance` — identical to upstream default
+  - Remove `get_date_dimension` — adapter's `exasol__last_day()` covers it
+  - Remove `day_of_week`, `day_of_year`, `week_of_year`, `iso_week_of_year`, `to_unixtimestamp` — upstream defaults work via comprehensive `date_part`
+  - Remove `week_start`, `week_end` — Exasol supports `date_trunc('week')`
+  - Remove `modules_datetime` — dormant placeholder (upstream [#47](https://github.com/godatadriven/dbt-date/issues/47))
+- Bump dbt_date minimum to `>=0.17.0` (tested with 0.17.1); dbt_utils tested with 1.3.3
+- Slim down `get_test_dates.sql` from 325 to 37 lines — delegates to upstream, patches only `rounded_timestamp` and timezone
+- Patch `dbt_date.datetime()` post-install to strip timezone for Exasol (via `run_tests.sh`)
+- Remove AGENTS.md, `exasol-reserved-keywords.md`, GitHub issue/PR templates — reduce project noise
+- Slim down README (315 → 62 lines), CONTRIBUTING (202 → 30 lines), CLAUDE.md (554 → 70 lines)
+- Enable `warn_error_options: error: all` in integration test project
+
 ## [0.1.0] - 2025-11-04
 
 ### Added
@@ -20,9 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - integration_tests/README.md - Testing guide with minimal duplication approach
 - Automated test runner script:
   - run_tests.sh - One-command test execution with options
-- Integration test suite with **38/38 passing tests** (100%)
-  - 36 dbt_date tests
-  - 2 dbt_utils tests
+- Integration test suite with passing tests (100%)
+  - 36 dbt_date expression tests (upstream `dbt_date_integration_tests` package)
+  - dbt_utils tests (haversine, date_spine, sequential_values)
 - GitHub templates for issues and pull requests
 - Best practices compliance per dbt package guidelines
 
@@ -83,10 +114,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Eliminated ~1,700 lines of duplicate code
   - Integration tests use upstream models directly (86% reduction: 7 files → 1 override)
   - No duplicate macro implementations
-- **100% naming compliance** - All 22 macros follow `exasol__<macro_name>` convention
+- **100% naming compliance** - All macros follow `exasol__<macro_name>` convention
 - **Flexible dependencies** - Version ranges allow minor/patch updates:
-  - dbt_utils: `>=1.3.0, <2.0.0`
-  - dbt_date: `>=0.16.0, <1.0.0`
+  - dbt_utils: `>=1.3.0, <1.4.0`
+  - dbt_date: `>=0.17.0, <0.18.0`
   - dbt-core: `>=1.0.0, <2.0.0`
 
 ### Documentation
@@ -104,7 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - All macros follow the `exasol__<macro_name>` naming convention
 - Compatible with dbt_utils 1.3.0+ (flexible version range)
-- Compatible with dbt_date 0.16.0+ (flexible version range)
+- Compatible with dbt_date 0.17.0+ (flexible version range)
 - Requires dbt-core 1.0.0+
 - Tested on Exasol 8.x
 
@@ -114,10 +145,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `convert_timezone()` returns input unchanged
 - All timestamp operations assume UTC
 
-## [Unreleased]
-
-### Planned
-
-- Publish to dbt package hub
-- Additional performance optimizations as identified
-- Community feedback integration

@@ -51,6 +51,11 @@ export DBT_PROFILES_DIR="$SCRIPT_DIR"
 
 echo -e "${YELLOW}Installing/updating packages...${NC}"
 dbt deps
+
+# Patch: strip tzinfo from dbt_date.datetime() — Exasol TIMESTAMP is timezone-naive
+# Without this, upstream test casts '1997-09-29 06:14:00+00:00' which Exasol rejects
+sed -i '' 's/tzinfo=modules.pytz.timezone(tz),//' \
+  dbt_packages/dbt_date/macros/_utils/modules_datetime.sql 2>/dev/null || true
 echo ""
 
 case "${1:-}" in
@@ -84,10 +89,9 @@ case "${1:-}" in
     echo -e "${BLUE}Running full test suite...${NC}"
     dbt seed --full-refresh
     dbt run  --full-refresh
-    # Exclude upstream dbt_date tests (timezone) and only specific upstream YAMLs we replace locally
-    dbt test --exclude package:dbt_date_integration_tests \
-                      "path:dbt_packages/dbt_utils/integration_tests/data/schema_tests/schema.yml" \
-                      "path:dbt_packages/dbt_utils/integration_tests/models/datetime/schema.yml"
+    # Exclude upstream dbt_utils schema tests (column quoting conflicts; we have local replacements)
+    dbt test --exclude "path:dbt_packages/dbt_utils/integration_tests/data/schema_tests/schema.yml" \
+                       "path:dbt_packages/dbt_utils/integration_tests/models/datetime/schema.yml"
     ;;
 esac
 

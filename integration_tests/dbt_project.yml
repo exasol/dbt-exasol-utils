@@ -2,6 +2,20 @@ name: 'dbt_exasol_utils_integration_tests'
 version: '1.0.0'
 config-version: 2
 
+flags:
+  send_anonymous_usage_stats: false
+  partial_parse: false
+  require_ref_prefers_node_package_to_root: true
+  warn_error_options:
+    error: all
+    warn:
+      # Upstream dbt_utils schema.yml uses old test syntax we can't fix
+      - MissingArgumentsPropertyInGenericTestDeprecation
+      # Upstream dbt_date tests reference our test_dates model (cross-package by design)
+      - PackageNodeDependsOnRootProjectNode
+      # Summary of the above — emitted even when individual warnings are downgraded
+      - DeprecationsSummary
+
 profile: 'exasol'
 
 model-paths:
@@ -47,7 +61,7 @@ on-run-start:
 models:
   dbt_exasol_utils_integration_tests:
     +materialized: table
-  # Disable upstream dbt_date integration models; replaced with local exasol-friendly tests
+  # Disable upstream dbt_date integration models; replaced with local exasol-friendly model
   dbt_date_integration_tests:
     +enabled: false
 
