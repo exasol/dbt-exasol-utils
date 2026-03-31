@@ -5,7 +5,7 @@ packages:
 
   # Install dbt_date from hub (needed for dbt_date macros)
   - package: godatadriven/dbt_date
-    version: [">=0.17.0", "<0.18.0"]  # tested with 0.17.1
+    version: [">=0.17.2", "<0.18.0"]  # tested with 0.17.2
 
   # Install local package (one directory above)
   - local: ../

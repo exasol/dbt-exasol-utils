@@ -14,8 +14,8 @@ DO NOT mention Claude or AI in commits, PRs, issues, code comments, or documenta
 
 **Before adding any macro**, check the upstream default and the dbt-exasol adapter. Only create an `exasol__` override if the default SQL genuinely doesn't work on Exasol. If in doubt, try deleting the override and running tests.
 
-Current overrides (12 total):
-- `macros/dbt_date/` (8): date_part, convert_timezone, day_name, month_name, from_unixtimestamp, iso_week_start, iso_year_week, get_base_dates
+Current overrides (13 total):
+- `macros/dbt_date/` (9): date_part, convert_timezone, day_name, month_name, from_unixtimestamp, iso_week_start, iso_year_week, get_base_dates, modules_datetime
 - `macros/dbt_utils/` (4): width_bucket, get_intervals_between, get_table_types_sql, get_tables_by_pattern_sql
 
 Key design: `date_part.sql` is comprehensive (handles dayofweek, dayofyear, week, isoweek, quarter, epoch) which lets upstream defaults for `day_of_week`, `day_of_year`, `week_of_year`, `iso_week_of_year`, and `to_unixtimestamp` work without overrides.
@@ -34,7 +34,7 @@ Requires a local Exasol instance (Docker). Connection config: `integration_tests
 
 ## Known Workarounds
 
-1. **`dbt_date.datetime()` is NOT dispatched** — upstream doesn't use `adapter.dispatch()`, so we can't override it. `run_tests.sh` patches `tzinfo` out after `dbt deps`. Upstream issue: https://github.com/godatadriven/dbt-date/issues/47
+1. **`dbt_date.datetime()` upstream test data** — upstream `get_test_dates.sql` calls `modules.datetime.datetime(...)` directly with `tzinfo`, bypassing dispatch. Our `exasol__get_test_dates()` handles this via `replace("+00:00'", "'")`. Upstream issue: https://github.com/godatadriven/dbt-date/issues/47
 
 2. **dbt_utils column quoting** — upstream tests use `DATA` as CTE name (Exasol reserved keyword). Local overrides in `models/dbt_utils_overrides/` rename to `test_data`. Some upstream schema tests excluded via `--exclude` in run_tests.sh.
 

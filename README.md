@@ -15,9 +15,9 @@ packages:
   - package: dbt-labs/dbt_utils
     version: [">=1.3.0", "<1.4.0"]
   - package: godatadriven/dbt_date
-    version: [">=0.17.0", "<0.18.0"]
+    version: [">=0.17.2", "<0.18.0"]
   - git: https://github.com/exasol/dbt-exasol-utils.git
-    revision: v0.2.0
+    revision: v0.2.1
 ```
 
 ### 2. Configure dispatch in `dbt_project.yml`
