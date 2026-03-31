@@ -52,10 +52,6 @@ export DBT_PROFILES_DIR="$SCRIPT_DIR"
 echo -e "${YELLOW}Installing/updating packages...${NC}"
 dbt deps
 
-# Patch: strip tzinfo from dbt_date.datetime() — Exasol TIMESTAMP is timezone-naive
-# Without this, upstream test casts '1997-09-29 06:14:00+00:00' which Exasol rejects
-sed -i '' 's/tzinfo=modules.pytz.timezone(tz),//' \
-  dbt_packages/dbt_date/macros/_utils/modules_datetime.sql 2>/dev/null || true
 echo ""
 
 case "${1:-}" in
