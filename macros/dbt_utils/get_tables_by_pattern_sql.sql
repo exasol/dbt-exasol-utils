@@ -8,6 +8,9 @@
         where object_type in ('TABLE', 'VIEW')
         and lower(root_name) like lower('{{ schema_pattern }}')
         and lower(object_name) like lower('{{ table_pattern }}')
+        {#-- Exasol treats '' as NULL, so "not like ''" would filter out every row --#}
+        {%- if exclude %}
         and lower(object_name) not like lower('{{ exclude }}')
+        {%- endif %}
 
 {% endmacro %}

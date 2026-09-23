@@ -1,12 +1,10 @@
 {% macro exasol__get_intervals_between(start_date, end_date, datepart) -%}
     {%- if datepart == 'week' -%}
-        {#-- Exasol doesn't have WEEKS_BETWEEN, so truncate to week boundaries and calculate --#}
-        {#-- This counts actual week boundaries, respecting NLS_FIRST_DAY_OF_WEEK --#}
+        {#-- dbt-exasol's datediff has no 'week'. date_spine builds one row per interval and --#}
+        {#-- keeps rows before end_date, so it needs the number of 7-day steps: ceil(seconds / 604800). --#}
+        {#-- Seconds, not days: days_between ignores the time of day for timestamp inputs --#}
         {%- call statement('get_intervals_between', fetch_result=True) %}
-            select cast(days_between(
-                date_trunc('week', {{ end_date }}),
-                date_trunc('week', {{ start_date }})
-            ) / 7 as integer)
+            select cast(ceil(seconds_between({{ end_date }}, {{ start_date }}) / 604800) as integer)
         {%- endcall -%}
     {%- else -%}
         {#-- Use dbt's default datediff for other dateparts --#}

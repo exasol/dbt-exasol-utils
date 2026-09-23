@@ -50,27 +50,42 @@ echo ""
 export DBT_PROFILES_DIR="$SCRIPT_DIR"
 
 echo -e "${YELLOW}Installing/updating packages...${NC}"
+# Fresh checkout: packages.yml references dbt_packages/dbt_date/integration_tests,
+# which only exists after a first install. Install without it once, then run full deps.
+UPSTREAM_TESTS="dbt_packages/dbt_date/integration_tests"
+if [ ! -f "$UPSTREAM_TESTS/dbt_project.yml" ]; then
+  echo -e "${YELLOW}Bootstrapping packages (first install)...${NC}"
+  cp packages.yml packages.yml.full
+  grep -v "$UPSTREAM_TESTS" packages.yml.full > packages.yml
+  dbt deps || { mv packages.yml.full packages.yml; exit 1; }
+  mv packages.yml.full packages.yml
+fi
 dbt deps
 
 echo ""
 
+# System NLS defaults for this run. Macros must not depend on them: CI runs with
+# EXA_FIRST_DAY_OF_WEEK=7 (Exasol default, Sunday) and 1 (Monday).
+# Skipped for compile, which needs no database.
+if [ "${1:-}" != "compile" ]; then
+  dbt run-operation set_system_nls --args "{first_day_of_week: ${EXA_FIRST_DAY_OF_WEEK:-7}, date_format: '${EXA_DATE_FORMAT:-YYYY-MM-DD}'}"
+  echo ""
+fi
+
+# dbt_date models and tests: local models/dbt_date plus the upstream dbt_date test package
+DATE_NODES="path:models/dbt_date package:dbt_date_integration_tests"
+
 case "${1:-}" in
   date)
-    echo -e "${BLUE}Running local dbt_date models...${NC}"
-    # Run only local dbt_date models under integration_tests/models/dbt_date
-    dbt run  --select "path:models/dbt_date" --full-refresh
-    # If tests exist under models/dbt_date or tests/, run them as well
-    dbt test --select "path:models/dbt_date" "path:tests"
+    echo -e "${BLUE}Running dbt_date tests (local + upstream models)...${NC}"
+    dbt run  --select "$DATE_NODES" --full-refresh
+    dbt test --select "$DATE_NODES"
     ;;
   utils)
-    echo -e "${BLUE}Running dbt_utils tests (datetime + overrides)...${NC}"
+    echo -e "${BLUE}Running dbt_utils tests (upstream + Exasol copies)...${NC}"
     dbt seed --full-refresh
-    # Upstream datetime + local overrides
-    dbt run  --select "path:dbt_packages/dbt_utils/integration_tests/models/datetime" "path:models/dbt_utils_overrides" --full-refresh
-    # Exclude upstream equality YAML (replaced by local override) and upstream data schema tests
-    dbt test --select "path:dbt_packages/dbt_utils/integration_tests/models/datetime" "path:models/dbt_utils_overrides" \
-             --exclude "path:dbt_packages/dbt_utils/integration_tests/models/datetime/schema.yml" \
-                       "path:dbt_packages/dbt_utils/integration_tests/data/schema_tests/schema.yml"
+    dbt run  --exclude "$DATE_NODES" --full-refresh
+    dbt test --exclude "$DATE_NODES"
     ;;
   compile)
     echo -e "${BLUE}Compiling models...${NC}"
@@ -85,9 +100,7 @@ case "${1:-}" in
     echo -e "${BLUE}Running full test suite...${NC}"
     dbt seed --full-refresh
     dbt run  --full-refresh
-    # Exclude upstream dbt_utils schema tests (column quoting conflicts; we have local replacements)
-    dbt test --exclude "path:dbt_packages/dbt_utils/integration_tests/data/schema_tests/schema.yml" \
-                       "path:dbt_packages/dbt_utils/integration_tests/models/datetime/schema.yml"
+    dbt test
     ;;
 esac
 

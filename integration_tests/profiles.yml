@@ -3,10 +3,10 @@ exasol:
   outputs:
     prod:
       type: exasol
-      dsn: localhost:8563
+      dsn: "{{ env_var('EXA_DSN', 'localhost:8563') }}"
       user: sys
       password: exasol
-      dbname: ''
+      dbname: DB
       schema: dbt_test
       timestamp_format: "YYYY-MM-DD HH:MI:SS.FF6"
       validate_server_certificate: false
