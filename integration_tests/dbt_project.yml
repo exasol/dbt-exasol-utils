@@ -13,28 +13,32 @@ flags:
       - MissingArgumentsPropertyInGenericTestDeprecation
       # Upstream dbt_date tests reference our test_dates model (cross-package by design)
       - PackageNodeDependsOnRootProjectNode
+      # Upstream dbt_utils sql/schema.yml describes and tests test_unpivot_original_api, which has no model
+      - NoNodeForYamlKey
+      - NodeNotFoundOrDisabled
+      # Upstream dbt_utils generic_tests/schema.yml sets error_if/warn_if outside config
+      - PropertyMovedToConfigDeprecation
       # Summary of the above — emitted even when individual warnings are downgraded
       - DeprecationsSummary
 
 profile: 'exasol'
 
 model-paths:
-  - "models"  # Contains local overrides in models/dbt_utils_overrides/
-  # Only include datetime from dbt_utils (other subdirs have local overrides)
+  - "models"  # Local Exasol copies of upstream models in models/dbt_utils_overrides/
+  # All upstream dbt_utils test models. Upstream copies that have a local
+  # Exasol version are disabled under `models:` below; the upstream schema.yml
+  # tests attach to the local copy by model name.
   - "dbt_packages/dbt_utils/integration_tests/models/datetime"
-  # NOTE: generic_tests/, geo/, sql/, and web/ excluded from upstream
-  #   - generic_tests/, geo/, sql/ have overrides in models/dbt_utils_overrides/ (data keyword fix)
-  #   - web/ excluded - requires split_part() which Exasol doesn't support
+  - "dbt_packages/dbt_utils/integration_tests/models/generic_tests"
+  - "dbt_packages/dbt_utils/integration_tests/models/geo"
+  - "dbt_packages/dbt_utils/integration_tests/models/sql"
+  # web/ is not included: get_url_host/get_url_path need split_part, and
+  # dbt-exasol's exasol__split_part raises "Unsupported on Exasol"
 
-# Note: Maximum upstream test usage with minimal overrides
-# - dbt_date: Full upstream tests (exasol__datetime handles timezone stripping)
-# - dbt_utils: 16/52 tests have local overrides to fix 'data' reserved keyword
-#   - Upstream uses 'with data as' which conflicts with Exasol's DATA keyword
-#   - Local overrides in dbt_utils_overrides/ rename 'data' -> 'test_data'
-#   - datetime/ uses 100% upstream (no 'data' keyword conflicts)
-#   - web/ excluded (requires split_part which Exasol doesn't support)
-
-test-paths: ["tests"]
+test-paths:
+  - "tests"
+  # Upstream dbt_utils singular and generic tests (expect_table_columns_to_match_set, slugify, ...)
+  - "dbt_packages/dbt_utils/integration_tests/tests"
 seed-paths:
   - "dbt_packages/dbt_utils/integration_tests/data"
 macro-paths: ["macros"]
@@ -53,20 +57,80 @@ dispatch:
 vars:
   dbt_date:time_zone: 'UTC'
 
-on-run-start:
-  - "alter session set NLS_DATE_FORMAT = 'YYYY-MM-DD'"
-  - "alter session set NLS_TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF6'"
-  - "alter session set NLS_DATE_LANGUAGE = 'ENG'"
+# NLS settings are set system-wide by run_tests.sh (macros/set_system_nls.sql).
+# on-run-start hooks only reach dbt's master connection, not model/test connections.
 
 models:
   dbt_exasol_utils_integration_tests:
     +materialized: table
-  # Disable upstream dbt_date integration models; replaced with local exasol-friendly model
+    # Upstream dbt_utils models that have a local copy in models/dbt_utils_overrides/.
+    # Each upstream folder is its own model path, so these names sit at the top level
+    # and never match the local copies. Maintained by create_overrides.sh.
+    # BEGIN create_overrides.sh
+    equality_less_columns: {+enabled: false}
+    test_deduplicate: {+enabled: false}
+    test_equal_rowcount: {+enabled: false}
+    test_fewer_rows_than: {+enabled: false}
+    test_generate_series: {+enabled: false}
+    test_generate_surrogate_key: {+enabled: false}
+    test_get_column_values_where: {+enabled: false}
+    test_get_filtered_columns_in_relation: {+enabled: false}
+    test_haversine_distance_km: {+enabled: false}
+    test_haversine_distance_mi: {+enabled: false}
+    test_pivot: {+enabled: false}
+    test_safe_add: {+enabled: false}
+    test_safe_divide: {+enabled: false}
+    test_safe_subtract: {+enabled: false}
+    test_star_aggregate: {+enabled: false}
+    test_star_no_columns: {+enabled: false}
+    test_star_prefix_suffix: {+enabled: false}
+    test_star_uppercase: {+enabled: false}
+    test_star: {+enabled: false}
+    test_unpivot_bool: {+enabled: false}
+    test_unpivot: {+enabled: false}
+    test_width_bucket: {+enabled: false}
+    # END create_overrides.sh
+  # Run upstream dbt_date integration models, except test_dates (replaced with local exasol-friendly model)
   dbt_date_integration_tests:
-    +enabled: false
+    test_dates:
+      +enabled: false
+
+data_tests:
+  dbt_exasol_utils_integration_tests:
+    # Upstream dbt_utils tests replaced by Exasol copies (tests/exasol_*.sql and
+    # models/dbt_utils_overrides/generic_tests/schema.yml)
+    assert_get_query_results_as_dict_objects_equal: {+enabled: false}
+    jinja_helpers:
+      test_slugify: {+enabled: false}
+    sql:
+      test_get_single_value_multiple_rows: {+enabled: false}
+    dbt_utils:
+      integration_tests:
+        models:
+          generic_tests:
+            dbt_utils_at_least_one_data_test_at_least_one_field: {+enabled: false}
+            dbt_utils_at_least_one_data_test_at_least_one_value__field: {+enabled: false}
+            dbt_utils_unique_combination_of_columns_data_unique_combination_of_columns_month__product: {+enabled: false}
 
 seeds:
-  # Quote all seed columns to handle Exasol reserved keywords
-  # (OUTPUT, CONDITION, VALUE, MONTH, SOURCE, etc.)
-  # Model overrides reference these quoted columns as needed
-  +quote_columns: true
+  # Seed columns are unquoted (uppercase), like normal Exasol tables, so upstream
+  # SQL works unchanged. Only seeds with a reserved word as column name are quoted
+  # (lowercase); models and tests on them use quoted names.
+  dbt_exasol_utils_integration_tests:
+    +quote_columns: false
+    geo:
+      data_haversine_km: {+quote_columns: true}     # OUTPUT
+      data_haversine_mi: {+quote_columns: true}     # OUTPUT
+    schema_tests:
+      data_test_at_least_one: {+quote_columns: true}              # VALUE
+      data_unique_combination_of_columns: {+quote_columns: true}  # MONTH
+    sql:
+      data_get_column_values_where: {+quote_columns: true}              # CONDITION
+      data_safe_divide: {+quote_columns: true}                          # OUTPUT
+      data_safe_divide_denominator_expressions: {+quote_columns: true}  # OUTPUT
+      data_safe_divide_numerator_expressions: {+quote_columns: true}    # OUTPUT
+      data_unpivot_original_api_expected: {+quote_columns: true}        # VALUE
+      data_unpivot_quote: {+quote_columns: true}                        # mixed case on purpose
+      data_unpivot_quote_expected: {+quote_columns: true}               # mixed case on purpose
+    web:
+      data_urls: {+quote_columns: true}  # SOURCE

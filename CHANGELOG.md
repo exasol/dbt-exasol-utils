@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-23
+
+### Breaking
+
+- `week_start()` and `week_end()` are now always Sunday to Saturday, as in dbt_date on other databases. Before, on a database with `NLS_FIRST_DAY_OF_WEEK = 1`, they returned Monday to Sunday. With the Exasol default (7, Sunday) the values do not change. For Monday-based weeks, use `iso_week_start()` and `iso_week_end()`
+- `union_relations()` with the default `source_column_name` now creates the column quoted and lowercase: `"_dbt_source_relation"`. Before, this call failed on Exasol. Calls that pass their own quoted name, for example `source_column_name='"_DBT_SOURCE_RELATION"'`, do not change
+- Minimum dbt version is now 1.10.5 (required by dbt_date 0.21)
+
+### Added
+
+- `exasol__get_column_values`: the upstream result alias `value` is a reserved word in Exasol, so `get_column_values()` failed with a syntax error
+- `exasol__union_relations`: the source column `_dbt_source_relation` is now quoted. Exasol identifiers cannot start with an underscore, so `union_relations()` failed with default arguments. Query the column as `"_dbt_source_relation"`
+- `exasol__deduplicate`: uses `QUALIFY`. The upstream aliases `_inner` and `data` are not valid on Exasol
+- `exasol__test_equal_rowcount` and `exasol__test_fewer_rows_than`: the upstream CTE `final` is a reserved word, and Exasol cannot group by the alias of a constant
+- `exasol__test_not_empty_string`: Exasol stores `''` as NULL, so the upstream test never found whitespace-only values. The CTE `errors` was also a reserved word
+- `exasol__test_not_null_proportion`: the proportion is rounded to a fixed decimal. On Exasol it was a DOUBLE, so an exact 0.9 failed `at_least: 0.9`
+- `exasol__week_start` and `exasol__week_end`: always Sunday to Saturday, as in dbt_date on other databases
+
+### Changed
+
+- Tested with dbt_utils 1.4.1, dbt_date 0.21.0, dbt-core 1.12.5 and dbt-exasol 1.12.2. Recommended version ranges in README are now `>=1.4.0,<1.5.0` (dbt_utils) and `>=0.21.0,<0.22.0` (dbt_date)
+- README: removed the `on-run-start` NLS hooks. They run on one dbt connection only and do not reach the connections that build models. The package macros no longer depend on NLS settings
+- Removed `exasol__width_bucket` and `exasol__iso_year_week`. The upstream defaults give the same results on Exasol
+
+### Fixed
+
+- `date_part('dayofweek')`, `day_of_week()` and `iso_week_start()` depended on `NLS_FIRST_DAY_OF_WEEK`. With Monday as first day of week they returned wrong values
+- `day_name()` and `month_name()` depended on `NLS_DATE_LANGUAGE`. They now always return English names
+- `get_relations_by_pattern()` and `get_relations_by_prefix()` found no tables when `exclude` was not given. Exasol treats `''` as NULL, so `not like ''` filtered out every row
+- Weekly `date_spine()` was missing its last week (for example 2023-01-01 to 2023-03-01 gave 8 rows instead of 9)
+
+### Tests
+
+- The test project now runs all upstream dbt_utils test models and tests (except `web/`, which needs `split_part`) and all upstream dbt_date test models. Before, most dbt_utils tests were excluded and the local override models had no assertions
+- Seeds load with unquoted columns like normal Exasol tables; only seeds with reserved-word columns are quoted
+- `create_overrides.sh` regenerates the local copies of upstream dbt_utils models that use reserved words as CTE names
+- NLS settings are set with `ALTER SYSTEM` before each run; CI runs with Sunday and Monday as first day of week
+- GitHub Actions workflow runs the suite against Exasol on every pull request
+- `run_tests.sh` works on a fresh checkout, and the `date` and `utils` modes select the right models and tests
+- Test profile uses `dbname: DB`. With dbt-exasol 1.12.2 an empty `dbname` makes the relation cache miss existing tables, so a second run failed with "object already exists"
+
 ## [0.2.1] - 2026-03-31
 
 ### Added

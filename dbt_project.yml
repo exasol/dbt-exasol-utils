@@ -1,8 +1,8 @@
 name: 'dbt_exasol_utils'  # Package name uses underscores per dbt convention
-version: '0.2.1'
+version: '0.3.0'
 config-version: 2
 
-require-dbt-version: [">=1.0.0", "<2.0.0"]
+require-dbt-version: [">=1.10.5", "<2.0.0"]
 
 macro-paths: ["macros"]
 

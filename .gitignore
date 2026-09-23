@@ -20,3 +20,4 @@ test_results*.log
 
 # Generated files
 package-lock.yml
+.claude/

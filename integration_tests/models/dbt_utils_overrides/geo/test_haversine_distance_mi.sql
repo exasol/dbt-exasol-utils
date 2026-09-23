@@ -1,4 +1,6 @@
-with test_data AS (
+-- Hand-written Exasol copy of upstream dbt_utils test_haversine_distance_mi.sql.
+-- DATA is reserved (CTE renamed), and the seed is quoted (OUTPUT is a reserved word).
+with test_data as (
     select * from {{ ref('data_haversine_mi') }}
 ),
 "final" as (

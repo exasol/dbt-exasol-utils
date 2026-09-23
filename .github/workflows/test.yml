@@ -1,0 +1,63 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    name: Integration tests (first day of week ${{ matrix.first_day_of_week }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # 7 = Sunday (Exasol default), 1 = Monday. Macros must give the same results.
+        first_day_of_week: [7, 1]
+
+    services:
+      exasol:
+        image: exasol/nano:2026.2.0-nano.4
+        ports:
+          - 8563:8563
+        options: --shm-size=4g
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install dbt
+        run: |
+          uv venv .venv
+          uv pip install --python .venv/bin/python dbt-core dbt-exasol
+          .venv/bin/dbt --version
+
+      - name: Wait for Exasol
+        working-directory: integration_tests
+        env:
+          DBT_PROFILES_DIR: .
+        run: |
+          for i in $(seq 1 60); do
+            if ../.venv/bin/dbt debug --connection > /dev/null 2>&1; then
+              echo "Exasol is ready"
+              exit 0
+            fi
+            sleep 5
+          done
+          ../.venv/bin/dbt debug --connection
+          exit 1
+
+      - name: Run integration tests
+        env:
+          EXA_FIRST_DAY_OF_WEEK: ${{ matrix.first_day_of_week }}
+          VIRTUAL_ENV: ${{ github.workspace }}/.venv
+        run: |
+          export PATH="$VIRTUAL_ENV/bin:$PATH"
+          integration_tests/run_tests.sh

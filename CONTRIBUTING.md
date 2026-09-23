@@ -27,6 +27,13 @@ integration_tests/run_tests.sh date     # dbt_date only
 integration_tests/run_tests.sh utils    # dbt_utils only
 ```
 
+Options (environment variables):
+
+- `EXA_FIRST_DAY_OF_WEEK=1` runs with Monday as first day of week (default 7, Sunday). CI runs both. Macros must not depend on NLS settings
+- `EXA_DSN=host:port` points to another Exasol instance (default `localhost:8563`)
+
+After a dbt_utils version change, run `integration_tests/create_overrides.sh` to regenerate the local copies of upstream test models (see `integration_tests/models/dbt_utils_overrides/README.md`).
+
 ## Commits
 
 Use conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`.

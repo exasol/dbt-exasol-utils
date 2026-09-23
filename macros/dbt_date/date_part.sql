@@ -8,7 +8,8 @@ week_of_year, iso_week_of_year, and to_unixtimestamp to work without overrides.
 {% macro exasol__date_part(datepart, date) -%}
     {%- set dp = datepart | lower -%}
     {%- if dp == 'dayofweek' or dp == 'dow' -%}
-        (to_char({{ date }}, 'D') - 1)
+        {#-- Sunday = 0. Counted from a known Sunday, because to_char('D') depends on NLS_FIRST_DAY_OF_WEEK --#}
+        mod(mod(days_between({{ date }}, date '1900-01-07'), 7) + 7, 7)
     {%- elif dp == 'dayofyear' or dp == 'doy' -%}
         cast(to_char({{ date }}, 'DDD') as {{ dbt.type_int() }})
     {%- elif dp == 'week' -%}
