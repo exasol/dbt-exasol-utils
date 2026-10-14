@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-10-14
+
+### Added
+
+- `exasol__test_mutually_exclusive_ranges`: the upstream test selects an unqualified `*` next to other columns (`select *, ...`). Exasol 2025.1 rejects this with `syntax error, unexpected ','`. The star is now qualified with its CTE name
+
+### Fixed
+
+- `fewer_rows_than` test: same unqualified `select *, ...`, now qualified. Both failed only on older Exasol versions such as 2025.1; the test container runs a newer version, so the test suite did not catch them
+
 ## [0.3.0] - 2026-09-23
 
 ### Breaking
