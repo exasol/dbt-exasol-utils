@@ -14,9 +14,9 @@ DO NOT mention Claude or AI in commits, PRs, issues, code comments, or documenta
 
 **Before adding any macro**, check the upstream default and the dbt-exasol adapter. Only create an `exasol__` override if the default SQL genuinely doesn't work on Exasol. If in doubt, try deleting the override and running tests.
 
-Current overrides (20 total):
+Current overrides (21 total):
 - `macros/dbt_date/` (10): date_part, convert_timezone, day_name, month_name, from_unixtimestamp, iso_week_start, week_start, week_end, get_base_dates, modules_datetime (datetime)
-- `macros/dbt_utils/` (10): get_intervals_between, get_table_types_sql, get_tables_by_pattern_sql, get_column_values, union_relations, deduplicate, test_equal_rowcount, test_fewer_rows_than, test_not_empty_string, test_not_null_proportion
+- `macros/dbt_utils/` (11): get_intervals_between, get_table_types_sql, get_tables_by_pattern_sql, get_column_values, union_relations, deduplicate, test_equal_rowcount, test_fewer_rows_than, test_mutually_exclusive_ranges, test_not_empty_string, test_not_null_proportion
 
 Macros must not depend on NLS settings (`NLS_FIRST_DAY_OF_WEEK`, `NLS_DATE_LANGUAGE`, `NLS_DATE_FORMAT`). Never use `to_char(d, 'D')`, `date_trunc('week')` or `to_char` names without `'NLS_DATE_LANGUAGE=ENG'`.
 
@@ -63,6 +63,7 @@ Local copies of upstream dbt_utils models live in `integration_tests/models/dbt_
 - `''` is NULL — `col = ''` never matches, `not like ''` filters every row
 - Reserved words often used as names upstream: `DATA`, `SOURCE`, `VALUE`, `OUTPUT`, `FINAL`, `ERRORS`, `INPUT`; identifiers cannot start with `_` unless quoted
 - `GROUP BY` cannot use the alias of a constant
+- `select *, <expr>` (unqualified star next to other columns) fails on 2025.1 with `unexpected ','`; newer versions and the test container accept it. Qualify the star (`cte.*`). The test suite cannot catch this
 - `EXTRACT(QUARTER)` not supported — `date_part` uses `to_char('Q')`
 
 ## Coding Style
